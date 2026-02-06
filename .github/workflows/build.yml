@@ -125,11 +125,11 @@ jobs:
         uses: android-actions/setup-android@v3
         with:
           packages: >
-            "platforms;android-31"
-            "ndk;25.2.9519653"
-            "cmake;3.22.1"
-            "build-tools;34.0.0"
-
+            platforms;android-31
+            ndk;25.2.9519653
+            cmake;3.22.1
+            build-tools;34.0.0
+            
       - name: Verify Dependencies
         run: |
           pkg-config --modversion cairo
@@ -202,7 +202,7 @@ jobs:
           else
             echo "⚠️ Build failed"
           fi
-          
+
   release:
     name: 📤 Release & Upload Artifacts
     runs-on: ubuntu-latest
