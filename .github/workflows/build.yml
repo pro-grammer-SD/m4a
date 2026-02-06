@@ -194,8 +194,15 @@ jobs:
 
       - name: Build Summary
         run: |
-          if [ -f bin/*.apk ]; then echo "✅ Build completed"; ls -lh bin/*.apk; else echo "⚠️ Build failed"; fi
-
+          shopt -s nullglob
+          APK_FILES=(bin/*.apk)
+          if [ ${#APK_FILES[@]} -gt 0 ]; then
+            echo "✅ Build completed"
+            ls -lh "${APK_FILES[@]}"
+          else
+            echo "⚠️ Build failed"
+          fi
+          
   release:
     name: 📤 Release & Upload Artifacts
     runs-on: ubuntu-latest
