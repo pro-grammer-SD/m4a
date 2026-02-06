@@ -1,139 +1,93 @@
 [app]
-# Application metadata
-title = Manim Android
-package.name = manimandroid
-package.domain = org.manimanim
+# Title of your application
+title = Manim Animation
 
-# Source files and assets
+# Package name (lowercase, alphanumeric only)
+package.name = manimanim
+
+# Package domain (use reverse domain notation)
+package.domain = org.manim
+
+# Source code location
 source.dir = .
-# Include all necessary file types for rendering and media
-source.include_exts = py,png,jpg,kv,atlas,ttf,ttc,mp4,mp3,txt,json
 
-# Versioning
+# Include patterns
+source.include_exts = py,png,jpg,kv,atlas,ttf,json,txt
+
+# Exclude patterns (to reduce APK size)
+source.exclude_patterns = tests/*,docs/*,.git/*,.github/*
+
+# Version
 version = 0.1.0
 
-# ============================================
-# CRITICAL: Python Requirements for Manim
-# ============================================
-# Format: package_name or package_name==version
-# For C-extensions: use recipe names if available (e.g., numpy, kivy, pycairo)
-# Note: ffmpeg-python won't work on Android; we use ffmpeg binary instead
+# Application requirements (dependencies)
 requirements = \
-    python3,\
-    kivy==2.3.0,\
-    numpy,\
-    scipy,\
-    matplotlib,\
-    pillow,\
-    sympy,\
-    pydub,\
-    requests,\
-    watchdog,\
-    cython==0.29.33,\
-    buildozer,\
-    android,\
-    pycairo,\
-    opencv-python,\
-    scikit-image,\
-    imageio
+    python3, \
+    kivy, \
+    numpy, \
+    scipy, \
+    matplotlib, \
+    pillow, \
+    sympy, \
+    pydub, \
+    requests, \
+    watchdog, \
+    opencv, \
+    scikit-image, \
+    imageio, \
+    imageio-ffmpeg
 
-# ============================================
-# APPLICATION ORIENTATION & WINDOW
-# ============================================
+# Orientation (portrait/landscape/sensor)
 orientation = portrait
+
+# Allow fullscreen
 fullscreen = 0
-# Allow landscape for better animation viewing
+
+# Icon (optional - 512x512 PNG)
+#icon.filename = %(source.dir)s/data/icon.png
+
+# Presplash image (optional - loading screen)
+#presplash.filename = %(source.dir)s/data/presplash.png
+
+# Android permissions
+android.permissions = \
+    INTERNET, \
+    ACCESS_NETWORK_STATE, \
+    WRITE_EXTERNAL_STORAGE, \
+    READ_EXTERNAL_STORAGE
+
+# Android features
 android.features = android.hardware.screen.landscape
 
-# Icon and presplash (optional)
-#icon.filename = %(source.dir)s/data/icon.png
-#presplash.filename = %(source.dir)s/data/presplash.png
-#presplash.loglevel = 2
+# Android API version
+android.api = 31
 
-# ============================================
-# ANDROID PERMISSIONS
-# ============================================
-# Essential permissions for Manim (video/audio processing and file I/O)
-android.permissions = \
-    INTERNET,\
-    WRITE_EXTERNAL_STORAGE,\
-    READ_EXTERNAL_STORAGE,\
-    RECORD_AUDIO,\
-    MODIFY_AUDIO_SETTINGS
-
-# ============================================
-# ANDROID BUILD CONFIGURATION
-# ============================================
-# API levels
-android.api = 33
+# Minimum Android API version
 android.minapi = 21
+
+# Android NDK version
 android.ndk = 25b
+
+# Accept Android SDK licenses
 android.accept_sdk_license = True
 
-# CPU architecture - ARM64 for best compatibility and performance
-android.archs = arm64-v8a
-# Uncomment for multi-architecture build (slower build but more device support)
-#android.archs = arm64-v8a,armeabi-v7a
+# Architecture (arm64-v8a for modern devices)
+android.arch = arm64-v8a
 
-# Gradle and additional build config
+# Allow backup
 android.allow_backup = True
-android.gradle_dependencies = \
-    androidx.appcompat:appcompat:1.6.1,\
-    androidx.constraintlayout:constraintlayout:2.1.4
 
-# ============================================
-# BUILDOZER / P4A (Python-for-Android) CONFIG
-# ============================================
-# Python-for-Android fork and versioning
-p4a.branch = develop
+# Gradle dependencies
+android.gradle_dependencies = androidx.appcompat:appcompat:1.6.1
 
-# Use develop branch for latest features and fixes
-# You can pin to specific commits if needed:
-# p4a.branch = develop
-# p4a.commit = abc123def456
+# Log level
+android.logcat_filters = *:S python:D
 
-# Bootstrap to use (sdl2 is default and works well)
-# p4a.bootstrap = sdl2
-
-# Custom recipes directory (for building system libraries from source)
-# This is where custom recipes for Cairo, Pango, HarfBuzz would go
-# Uncomment if you have custom p4a recipes
-# p4a.local_recipes = ./recipes/
-
-# Enable detailed logging to help debug build issues
-log_level = 2
-
-# ============================================
-# JAVA / GRADLE CONFIGURATION
-# ============================================
-# Java version compatibility
-android.gradle_options = org.gradle.jvmargs=-Xmx4096m
-
-# Manifest entries for camera/audio permission handling
-# android.entrypoint = org.kivy.android.PythonActivity
-
-# ============================================
-# STORAGE & CACHING
-# ============================================
-# Use app-specific directories
-android.use_legacy_toolchain = False
-
-# ============================================
-# BUILDOZER GLOBAL CONFIG
-# ============================================
+# Buildozer options
 [buildozer]
-# Logging
+
+# Log level (0=error, 1=info, 2=debug)
 log_level = 2
+
+# Warn on root
 warn_on_root = 1
-
-# Build directory cleanup (set to 0 to keep intermediate files for debugging)
-# buildozer.gradle_dependencies =
-
-# ============================================
-# DEPLOYMENT SETTINGS
-# ============================================
-# Android studio path (if you have it installed locally)
-# android.studio_dir = /path/to/android-studio
-
-# Custom Java options for larger builds
-# android.gradle_options = org.gradle.jvmargs=-Xmx8g
