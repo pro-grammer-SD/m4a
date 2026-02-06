@@ -30,57 +30,21 @@ jobs:
     name: 📋 Validate Configuration
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
       - name: Check Required Files
         run: |
-          echo "🔍 Checking for required files..."
-          
-          if [ ! -f "buildozer.spec" ]; then
-            echo "❌ buildozer.spec not found!"
-            exit 1
-          fi
-          
-          if [ ! -f "main.py" ]; then
-            echo "❌ main.py not found!"
-            exit 1
-          fi
-          
-          echo "✅ buildozer.spec found"
-          echo "✅ main.py found"
-          
+          [ -f "buildozer.spec" ] || (echo "❌ buildozer.spec missing!" && exit 1)
+          [ -f "main.py" ] || (echo "❌ main.py missing!" && exit 1)
+          echo "✅ Required files present"
       - name: Validate buildozer.spec
         run: |
-          echo "🔍 Validating buildozer.spec..."
-          
-          # Check for required sections
-          if ! grep -q "^\[app\]" buildozer.spec; then
-            echo "❌ Missing [app] section in buildozer.spec"
-            exit 1
-          fi
-          
-          if ! grep -q "^title" buildozer.spec; then
-            echo "❌ Missing title in buildozer.spec"
-            exit 1
-          fi
-          
-          if ! grep -q "^package.name" buildozer.spec; then
-            echo "❌ Missing package.name in buildozer.spec"
-            exit 1
-          fi
-          
-          if ! grep -q "^package.domain" buildozer.spec; then
-            echo "❌ Missing package.domain in buildozer.spec"
-            exit 1
-          fi
-          
-          echo "✅ buildozer.spec is valid"
-          
+          grep -q "^\[app\]" buildozer.spec || (echo "❌ Missing [app] section" && exit 1)
+          grep -q "^title" buildozer.spec || (echo "❌ Missing title" && exit 1)
+          grep -q "^package.name" buildozer.spec || (echo "❌ Missing package.name" && exit 1)
+          grep -q "^package.domain" buildozer.spec || (echo "❌ Missing package.domain" && exit 1)
+          echo "✅ buildozer.spec valid"
       - name: Check Python Syntax
-        run: |
-          python3 -m py_compile main.py
-          echo "✅ main.py has valid Python syntax"
+        run: python3 -m py_compile main.py
 
   build:
     name: 🏗️ Build APK
@@ -88,10 +52,8 @@ jobs:
     needs: validate
     permissions:
       contents: read
-    
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -105,113 +67,62 @@ jobs:
           large-packages: true
           swap-storage: true
 
-      - name: Set up Java JDK 11
+      - name: Set up Java 17 & Gradle Cache
         uses: actions/setup-java@v4
         with:
-          java-version: '11'
+          java-version: '17'
           distribution: 'temurin'
+          cache: gradle
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      # ============================================
-      # SYSTEM DEPENDENCIES (Ubuntu 22.04 only)
-      # ============================================
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.local/lib/python3.11/site-packages
+          key: manim-pip-${{ hashFiles('**/requirements.txt') }}-py3.11
+          restore-keys: manim-pip-py3.11
+
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.buildozer
+            ~/.local/share/python-for-android
+          key: buildozer-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-cache
+
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/Android/sdk
+            ~/.android
+          key: android-sdk-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: android-sdk-cache
+
+      - name: Install Python & Build Dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install Cython==0.29.33 setuptools-scm buildozer p4a
+          pip install numpy scipy matplotlib pillow sympy pydub requests watchdog opencv-python scikit-image imageio imageio-ffmpeg
+
       - name: Install System Dependencies
         run: |
-          echo "📦 Installing system dependencies..."
           sudo apt-get update -qq
-          
-          # Essential build tools
-          sudo apt-get install -y \
-            build-essential \
-            git \
-            curl \
-            wget \
-            pkg-config \
-            autoconf \
-            automake \
-            libtool \
-            cmake \
-            ninja-build
-          
-          # Core graphics rendering
-          sudo apt-get install -y \
-            libcairo2-dev \
-            libpango1.0-dev
-          
-          # Font and text handling
-          sudo apt-get install -y \
-            libfreetype6-dev \
-            fonts-liberation \
-            fonts-dejavu-core \
-            libharfbuzz-dev \
-            libfribidi-dev
-          
-          # Image and compression
-          sudo apt-get install -y \
-            libpng-dev \
-            zlib1g-dev \
-            libjpeg-dev
-          
-          # Video processing (FFmpeg)
-          sudo apt-get install -y \
-            ffmpeg \
-            libavformat-dev \
-            libavcodec-dev \
-            libavdevice-dev \
-            libswscale-dev \
-            libswresample-dev \
-            libavutil-dev \
-            libavfilter-dev
-          
-          # SDL for Android interop
-          sudo apt-get install -y \
-            libsdl2-dev \
-            libsdl2-image-dev \
-            libsdl2-mixer-dev \
-            libsdl2-ttf-dev
-          
-          # GLib and introspection
-          sudo apt-get install -y \
-            libglib2.0-dev \
-            gobject-introspection \
-            libgirepository1.0-dev
-          
-          # XML libraries
-          sudo apt-get install -y \
-            libxml2-dev \
-            libxslt1-dev
-          
-          # Security and utilities
-          sudo apt-get install -y \
-            libssl-dev \
-            libffi-dev \
-            libbz2-dev \
-            xz-utils \
-            unzip
-          
-          echo "✅ System dependencies installed"
+          sudo apt-get install -y build-essential git curl wget pkg-config autoconf automake libtool cmake ninja-build
+          sudo apt-get install -y libcairo2-dev libpango1.0-dev libfreetype6-dev fonts-liberation fonts-dejavu-core libharfbuzz-dev libfribidi-dev
+          sudo apt-get install -y libpng-dev zlib1g-dev libjpeg-dev
+          sudo apt-get install -y ffmpeg libavformat-dev libavcodec-dev libavdevice-dev libswscale-dev libswresample-dev libavutil-dev libavfilter-dev
+          sudo apt-get install -y libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev
+          sudo apt-get install -y libglib2.0-dev gobject-introspection libgirepository1.0-dev
+          sudo apt-get install -y libxml2-dev libxslt1-dev
+          sudo apt-get install -y libssl-dev libffi-dev libbz2-dev xz-utils unzip
+          sudo apt-get install -y texlive texlive-latex-base texlive-latex-extra texlive-fonts-extra texlive-fonts-recommended texlive-science texlive-latex-recommended cm-super dvipng dvisvgm
 
-      - name: Install LaTeX (For Math Rendering)
-        run: |
-          echo "📐 Installing LaTeX dependencies..."
-          sudo apt-get install -y \
-            texlive \
-            texlive-latex-base \
-            texlive-latex-extra \
-            texlive-fonts-extra \
-            texlive-fonts-recommended \
-            texlive-science \
-            texlive-latex-recommended \
-            cm-super \
-            dvipng \
-            dvisvgm
-          echo "✅ LaTeX installed"
-
-      - name: Set up Android SDK
+      - name: Set up Android SDK/NDK
         uses: android-actions/setup-android@v3
         with:
           packages: |
@@ -220,304 +131,131 @@ jobs:
             cmake;3.22.1
             build-tools;34.0.0
 
-      # ============================================
-      # PYTHON BUILD TOOLS
-      # ============================================
-      - name: Install Python Build Tools
+      - name: Verify Dependencies
         run: |
-          echo "🐍 Installing Python build tools..."
-          python -m pip install --upgrade pip setuptools wheel
-          
-          pip install \
-            Cython==0.29.33 \
-            setuptools-scm
-          
-          pip install \
-            buildozer \
-            p4a
-          
-          echo "✅ Build tools installed"
+          pkg-config --modversion cairo
+          pkg-config --modversion pango
+          pkg-config --modversion freetype2
+          pkg-config --modversion harfbuzz
+          latex --version
+          ffmpeg -version
+          python -c "import numpy; import PIL; import scipy"
 
-      - name: Install Manim and Dependencies
-        run: |
-          echo "🎬 Installing Manim and dependencies..."
-          pip install \
-            numpy \
-            scipy \
-            matplotlib \
-            pillow \
-            sympy \
-            pydub \
-            requests \
-            watchdog \
-            opencv-python \
-            scikit-image \
-            imageio \
-            imageio-ffmpeg
-          
-          echo "✅ Manim dependencies installed"
-
-      # ============================================
-      # VERIFY DEPENDENCIES
-      # ============================================
-      - name: Verify Critical Dependencies
-        run: |
-          echo "🔍 Verifying critical dependencies..."
-          
-          echo "=== System Libraries ==="
-          pkg-config --modversion cairo || echo "⚠️ cairo not found"
-          pkg-config --modversion pango || echo "⚠️ pango not found"
-          pkg-config --modversion freetype2 || echo "⚠️ freetype2 not found"
-          pkg-config --modversion harfbuzz || echo "⚠️ harfbuzz not found"
-          
-          echo "=== LaTeX ==="
-          latex --version 2>&1 | head -3 || echo "⚠️ LaTeX not found"
-          
-          echo "=== FFmpeg ==="
-          ffmpeg -version 2>&1 | head -1 || echo "⚠️ FFmpeg not found"
-          
-          echo "=== Python Packages ==="
-          python -c "import numpy; print(f'✅ numpy: {numpy.__version__}')"
-          python -c "import PIL; print('✅ pillow: OK')"
-          python -c "import scipy; print('✅ scipy: OK')"
-          
-          echo "✅ Dependencies verified"
-
-      # ============================================
-      # BUILD CONFIGURATION
-      # ============================================
       - name: Configure Build
         run: |
-          echo "⚙️ Configuring build..."
-          
-          # Display buildozer.spec for verification
-          echo "=== buildozer.spec content ==="
+          echo "=== buildozer.spec ==="
           cat buildozer.spec
-          echo "=============================="
-          
-          # Display main.py first 50 lines for verification
           echo "=== main.py (first 50 lines) ==="
           head -50 main.py
-          echo "=============================="
 
-      # ============================================
-      # BUILD APK
-      # ============================================
-      - name: Build APK with Buildozer
-        continue-on-error: true
+      - name: Build APK (Debug/Release)
         run: |
-          echo "🏗️ Building APK with Buildozer..."
-          
-          # Set buildozer configuration
           export BUILDOZER_LOG_LEVEL=2
-          
-          # Accept all Android licenses
-          yes | buildozer android debug 2>&1 | tee buildozer-build.log
-          
-          echo "Build completed (may have errors)"
+          yes | buildozer android ${{ github.event.inputs.build_type }} 2>&1 | tee buildozer-build.log
         timeout-minutes: 120
+        continue-on-error: true
 
-      # ============================================
-      # VERIFY BUILD OUTPUT
-      # ============================================
       - name: Verify APK Output
         if: always()
         run: |
-          echo "🔍 Verifying APK output..."
-          
-          # List entire bin directory
-          if [ -d "bin" ]; then
-            echo "=== Contents of bin/ ==="
-            ls -lah bin/
-            echo ""
-          else
-            echo "⚠️ bin directory not found"
-          fi
-          
-          # Check for APK files
           APK_COUNT=$(find . -name "*.apk" 2>/dev/null | wc -l)
           echo "APK files found: $APK_COUNT"
-          
-          if [ $APK_COUNT -gt 0 ]; then
-            echo "✅ APK(s) found:"
-            find . -name "*.apk" -exec ls -lh {} \;
-          else
-            echo "⚠️ No APK files generated"
-          fi
+          [ $APK_COUNT -gt 0 ] && find . -name "*.apk" -exec ls -lh {} \;
 
-      - name: Check Build Log for Errors
-        if: always()
-        run: |
-          echo "📋 Checking build log..."
-          
-          if [ -f "buildozer-build.log" ]; then
-            echo "=== Last 100 lines of build log ==="
-            tail -100 buildozer-build.log
-            
-            echo ""
-            echo "=== Searching for errors ==="
-            grep -i "error" buildozer-build.log | head -20 || echo "No 'error' found in log"
-          fi
-
-      # ============================================
-      # UPLOAD ALL ARTIFACTS (ALWAYS)
-      # ============================================
-      - name: Upload APK (if exists)
-        if: always()
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: manim-android-apk
           path: bin/
           retention-days: 30
-          if-no-files-found: ignore
 
-      - name: Upload Build Log
-        if: always()
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: buildozer-logs
           path: buildozer-build.log
           retention-days: 30
-          if-no-files-found: ignore
 
-      - name: Upload .buildozer Directory
-        if: always()
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: buildozer-work-dir
           path: .buildozer/
           retention-days: 7
-          if-no-files-found: ignore
 
-      - name: Upload buildozer.spec
-        if: always()
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: build-config
           path: buildozer.spec
           retention-days: 30
-          if-no-files-found: ignore
 
-      - name: Upload main.py
-        if: always()
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: app-source
           path: main.py
           retention-days: 30
-          if-no-files-found: ignore
 
-      # ============================================
-      # NOTIFICATIONS
-      # ============================================
-      - name: Build Success Summary
-        if: success()
+      - name: Build Summary
         run: |
-          echo "✅ Build completed successfully!"
-          echo ""
-          echo "📱 APK files:"
-          ls -lh bin/*.apk 2>/dev/null || echo "No APK found"
-          echo ""
-          echo "📥 Download from Actions → Artifacts tab"
-
-      - name: Build Failure Summary
-        if: failure()
-        run: |
-          echo "⚠️ Build process encountered issues!"
-          echo ""
-          echo "📋 Check these artifacts:"
-          echo "  - buildozer-logs: Build output"
-          echo "  - buildozer-work-dir: Build working directory"
-          echo "  - build-config: Your configuration"
-          echo "  - app-source: Your source code"
-          echo ""
-          echo "Common issues:"
-          echo "  - Missing dependencies (check logs)"
-          echo "  - Memory limits exceeded"
-          echo "  - Network timeout during download"
-          echo ""
-          echo "Check buildozer-logs for detailed error messages"
+          if [ -f bin/*.apk ]; then echo "✅ Build completed"; ls -lh bin/*.apk; else echo "⚠️ Build failed"; fi
 
   release:
-    name: 📤 Create Release & Upload All Artifacts
+    name: 📤 Release & Upload Artifacts
     runs-on: ubuntu-latest
     needs: build
     if: always()
     permissions:
       contents: write
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Download APK Artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: manim-android-apk
           path: artifacts/apk/
 
-      - name: Download Build Logs
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: buildozer-logs
           path: artifacts/logs/
 
-      - name: Download Build Config
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: build-config
           path: artifacts/config/
 
-      - name: Download App Source
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: app-source
           path: artifacts/source/
 
-      - name: Download Buildozer Work Dir
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: buildozer-work-dir
           path: artifacts/buildozer/
 
       - name: Create Release Package
         run: |
-          echo "📦 Creating comprehensive release package..."
-          
           mkdir -p release-files
-          
-          # Copy all artifacts to release directory
-          cp -r artifacts/* release-files/ 2>/dev/null || echo "Some artifacts not found (may be expected)"
-          
-          # Create manifest
+          cp -r artifacts/* release-files/ 2>/dev/null
           cat > release-files/MANIFEST.txt << 'EOF'
           🎬 Manim Android Build Release
-          ================================
-          
+          ===============================
+
           Contents:
-          - apk/              : APK files (if build succeeded)
-          - logs/             : Buildozer build logs
-          - config/           : buildozer.spec configuration
-          - source/           : main.py application source
-          - buildozer/        : Full buildozer work directory
-          
-          Build Information:
-          - Build Date: $(date -u)
-          - Commit: ${{ github.sha }}
-          - Branch: ${{ github.ref }}
-          - Workflow: ${{ github.workflow }}
-          
+          - apk/      : APK files
+          - logs/     : Buildozer build logs
+          - config/   : buildozer.spec
+          - source/   : main.py
+          - buildozer/: Full buildozer work dir
+
           Instructions:
-          1. Extract this archive
-          2. If APK exists in apk/ folder, install: adb install -r apk/*.apk
-          3. Check logs/ for build output if APK missing
-          4. Review buildozer/ for detailed error information
+          1. Extract
+          2. adb install -r apk/*.apk
+          3. Check logs/ if APK missing
+          4. Review buildozer/ for details
           EOF
-          
-          echo "✅ Release package created"
           ls -lah release-files/
 
-      - name: Create GitHub Release
+      - name: Release to GitHub
         uses: softprops/action-gh-release@v1
         with:
           files: |
@@ -533,45 +271,10 @@ jobs:
           name: "Manim Android Build #${{ github.run_number }}"
           body: |
             🎬 **Manim Android APK Build Release**
-            
-            **Build Info:**
             - Run: #${{ github.run_number }}
             - Commit: ${{ github.sha }}
             - Branch: ${{ github.ref }}
             - Date: ${{ github.event.head_commit.timestamp }}
-            
-            **Artifacts Included:**
-            ✅ APK files (if build succeeded)
-            ✅ Complete build logs
-            ✅ buildozer.spec configuration
-            ✅ main.py source code
-            ✅ Full buildozer working directory
-            
-            **Installation:**
-            ```bash
-            adb install -r manim-android-apk/*.apk
-            ```
-            
-            **Build Status:**
-            - Job: ${{ needs.build.result }}
-            - All artifacts included regardless of status
-            
-            For detailed logs, extract and check the logs/ folder.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Release Upload Summary
-        if: always()
-        run: |
-          echo "✅ Release Complete!"
-          echo ""
-          echo "📦 All artifacts packaged and uploaded:"
-          echo "  ✅ APK files"
-          echo "  ✅ Build logs"
-          echo "  ✅ Configuration"
-          echo "  ✅ Source code"
-          echo "  ✅ Full work directory"
-          echo ""
-          echo "🔗 Check GitHub Releases tab for download link"
-          echo "📝 Release: build-${{ github.run_number }}-${{ github.run_id }}"
           
