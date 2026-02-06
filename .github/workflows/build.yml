@@ -105,7 +105,7 @@ jobs:
       - name: Install Python & Build Dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          pip install Cython==0.29.33 setuptools-scm buildozer p4a
+          pip install Cython==0.29.33 setuptools-scm buildozer python-for-android
           pip install numpy scipy matplotlib pillow sympy pydub requests watchdog opencv-python scikit-image imageio imageio-ffmpeg
 
       - name: Install System Dependencies
