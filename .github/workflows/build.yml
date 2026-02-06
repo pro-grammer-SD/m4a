@@ -124,11 +124,11 @@ jobs:
       - name: Set up Android SDK/NDK
         uses: android-actions/setup-android@v3
         with:
-          packages: |
-            platforms;android-31
-            ndk;25.2.9519653
-            cmake;3.22.1
-            build-tools;34.0.0
+          packages: >
+            "platforms;android-31"
+            "ndk;25.2.9519653"
+            "cmake;3.22.1"
+            "build-tools;34.0.0"
 
       - name: Verify Dependencies
         run: |
