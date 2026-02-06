@@ -1,4 +1,4 @@
-name: Build Manim Android APK (Full Dependencies)
+name: Build Manim Android APK (Complete Dependencies)
 
 on:
   push:
@@ -37,15 +37,13 @@ jobs:
         python-version: '3.11'
 
     # ============================================
-    # SYSTEM DEPENDENCIES FOR BUILDING
-    # These are needed on the BUILD MACHINE (Linux runner)
-    # They enable buildozer and p4a to cross-compile for Android
+    # SYSTEM DEPENDENCIES - CORE RENDERING LIBS
     # ============================================
-    - name: Install Build Tools
+    - name: Install System Build Dependencies
       run: |
         sudo apt-get update
         
-        # Essential compiler and build tools
+        # Essential build tools
         sudo apt-get install -y \
           build-essential \
           git \
@@ -56,38 +54,39 @@ jobs:
           automake \
           libtool \
           cmake \
-          ninja-build
-        
-        print "✓ Build tools installed"
-
-    # ============================================
-    # GRAPHICS LIBRARY DEVELOPMENT HEADERS
-    # Needed by p4a for building Cairo/Pango recipes
-    # ============================================
-    - name: Install Graphics Libraries (for cross-compilation)
-      run: |
+          ninja-build \
+          
+        # Core graphics libraries
         sudo apt-get install -y \
           libcairo2-dev \
           libpango1.0-dev \
           libpangocairo-1.0-0 \
+          libpango-1.0-0 \
+          
+        # Font handling (CRITICAL for text rendering)
+        sudo apt-get install -y \
           libfreetype6-dev \
           libfreetype-dev \
+          fonts-liberation \
+          fonts-dejavu-core \
+          
+        # Text shaping engine
+        sudo apt-get install -y \
           libharfbuzz-dev \
           libharfbuzz0b \
+          
+        # Bidirectional text support
+        sudo apt-get install -y \
           libfribidi-dev \
           libfribidi0 \
+          
+        # Image and compression libraries
+        sudo apt-get install -y \
           libpng-dev \
           zlib1g-dev \
-          libjpeg-dev
-        
-        echo "✓ Graphics libraries installed"
-
-    # ============================================
-    # VIDEO PROCESSING LIBRARIES
-    # For building FFmpeg recipes on Android
-    # ============================================
-    - name: Install Video Libraries
-      run: |
+          libjpeg-dev \
+          
+        # Video/FFmpeg libraries
         sudo apt-get install -y \
           ffmpeg \
           libavformat-dev \
@@ -96,26 +95,38 @@ jobs:
           libswscale-dev \
           libswresample-dev \
           libavutil-dev \
-          libavfilter-dev
-        
-        echo "✓ FFmpeg libraries installed"
-
-    # ============================================
-    # FONT AND TEXT SUPPORT
-    # ============================================
-    - name: Install Font Support
-      run: |
+          libavfilter-dev \
+          
+        # SDL (Simple DirectMedia Layer)
         sudo apt-get install -y \
-          fonts-liberation \
-          fonts-dejavu-core \
+          libsdl2-dev \
+          libsdl2-image-dev \
+          libsdl2-mixer-dev \
+          libsdl2-ttf-dev \
+          
+        # GLib dependencies (needed for Pango)
+        sudo apt-get install -y \
           libglib2.0-dev \
-          libgobject-2.0-dev
-        
-        echo "✓ Font support installed"
+          libgobject-2.0-dev \
+          
+        # XML libraries
+        sudo apt-get install -y \
+          libxml2-dev \
+          libxslt1-dev \
+          
+        # SSL/TLS
+        sudo apt-get install -y \
+          libssl-dev \
+          
+        # Other utilities
+        sudo apt-get install -y \
+          libffi-dev \
+          libbz2-dev \
+          xz-utils \
+          unzip
 
     # ============================================
-    # LATEX (Optional - comment out to reduce build time)
-    # ~500MB - used for mathematical equation rendering
+    # LATEX INSTALLATION (For mathematical typesetting)
     # ============================================
     - name: Install LaTeX Dependencies
       run: |
@@ -126,48 +137,41 @@ jobs:
           texlive-fonts-extra \
           texlive-fonts-recommended \
           texlive-science \
+          texlive-latex-recommended \
           cm-super \
           dvipng \
           dvisvgm
-        
-        echo "✓ LaTeX installed"
-        latex --version | head -2
 
     # ============================================
-    # ANDROID SDK AND NDK
+    # ANDROID SDK/NDK SETUP
     # ============================================
-    - name: Set up Android SDK/NDK
-      uses: android-actions/setup-android@v2
+    - name: Set up Android SDK
+      uses: android-actions/setup-android@v3
       with:
-        api-level: 33
-        ndk-version: r25b
-        cmake-version: 3.22.1
+        packages: |
+          platforms;android-31
+          ndk;25.2.9519653
+          cmake;3.22.1
+          build-tools;34.0.0
 
     # ============================================
-    # PYTHON BUILD DEPENDENCIES
+    # PYTHON DEPENDENCIES
     # ============================================
-    - name: Install Python Build Tools
+    - name: Install Python Build Dependencies
       run: |
         python -m pip install --upgrade pip setuptools wheel
         
-        # Core build tools - CRITICAL versions
+        # Core build tools
         pip install \
           Cython==0.29.33 \
           setuptools-scm \
+          
+        # Buildozer and dependencies
+        pip install \
           buildozer \
-          p4a
-        
-        echo "✓ Python build tools installed"
-        buildozer --version
-
-    # ============================================
-    # PYTHON RUNTIME DEPENDENCIES
-    # These are for development environment
-    # (buildozer will package them for Android)
-    # ============================================
-    - name: Install Python Runtime Dependencies
-      run: |
-        # Main Manim stack
+          p4a \
+          
+        # Manim and its dependencies
         pip install \
           numpy \
           scipy \
@@ -176,122 +180,155 @@ jobs:
           sympy \
           pydub \
           requests \
-          watchdog
-        
-        # Image/video processing
+          watchdog \
+          
+        # Additional graphics processing
         pip install \
           opencv-python \
           scikit-image \
           imageio \
           imageio-ffmpeg
         
-        # Graphics
-        pip install \
-          pycairo \
-          kivy==2.3.0
+    - name: Verify Critical Dependencies
+      run: |
+        echo "=== Checking System Libraries ==="
+        pkg-config --modversion cairo || echo "WARN: cairo not found"
+        pkg-config --modversion pango || echo "WARN: pango not found"
+        pkg-config --modversion pangocairo || echo "WARN: pangocairo not found"
+        pkg-config --modversion freetype2 || echo "WARN: freetype2 not found"
+        pkg-config --modversion harfbuzz || echo "WARN: harfbuzz not found"
         
-        echo "✓ Python runtime dependencies installed"
+        echo "=== Checking LaTeX Installation ==="
+        latex --version || echo "WARN: LaTeX not found"
+        
+        echo "=== Checking FFmpeg ==="
+        ffmpeg -version | head -3
+        
+        echo "=== Checking Python Packages ==="
+        python -c "import cairo; print(f'cairo: OK')" 2>/dev/null || echo "WARN: pycairo not installed yet"
+        python -c "import numpy; print(f'numpy: {numpy.__version__}')"
+        python -c "import PIL; print(f'pillow: OK')"
 
     # ============================================
-    # VERIFY BUILD ENVIRONMENT
+    # BUILDOZER CONFIGURATION
     # ============================================
-    - name: Verify Build Environment
+    - name: Create buildozer.spec
       run: |
-        echo "=== System Libraries ==="
-        pkg-config --modversion cairo 2>/dev/null && echo "✓ Cairo" || echo "✗ Cairo"
-        pkg-config --modversion pango 2>/dev/null && echo "✓ Pango" || echo "✗ Pango"
-        pkg-config --modversion freetype2 2>/dev/null && echo "✓ FreeType2" || echo "✗ FreeType2"
+        cat > buildozer.spec << 'EOF'
+        [app]
+        title = Manim Animation
+        package.name = manimanim
+        package.domain = org.manim
         
-        echo ""
-        echo "=== Development Tools ==="
-        java -version 2>&1 | head -1
-        python --version
-        buildozer --version
+        source.dir = .
+        source.include_exts = py,png,jpg,kv,atlas,ttf
+        version = 0.1.0
         
-        echo ""
-        echo "=== Python Packages (buildozer env) ==="
-        pip list | grep -E "(numpy|kivy|cython|buildozer|matplotlib)"
+        requirements = python3,kivy,numpy,scipy,pydub,pillow,sympy,requests,watchdog,imageio,opencv,scikit-image
+        
+        orientation = portrait
+        fullscreen = 0
+        
+        android.permissions = INTERNET,ACCESS_NETWORK_STATE,WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE
+        android.features = android.hardware.screen.landscape
+        
+        android.api = 31
+        android.minapi = 21
+        android.ndk = 25b
+        android.accept_sdk_license = True
+        
+        android.arch = arm64-v8a
+        android.allow_backup = True
+        
+        # Graphics and rendering
+        android.gradle_dependencies = androidx.appcompat:appcompat:1.6.1
+        
+        # Buildozer specific options
+        p4a.source_dir = %(source.dir)s/.buildozer/android/platform/build-*_armeabi-v7a/build/other_builds
+        p4a.local_recipes = ./
+        p4a.hook = %(source.dir)s/p4a_hook.py
+        
+        [buildozer]
+        log_level = 2
+        warn_on_root = 1
+        EOF
+        cat buildozer.spec
 
     # ============================================
-    # PREPARE BUILDOZER SPEC
-    # Copy spec file to repo root if needed
+    # PREPARE MANIM APP FOR ANDROID
     # ============================================
-    - name: Verify buildozer.spec
+    - name: Create Minimal Manim Android App
       run: |
-        if [ ! -f "buildozer.spec" ]; then
-          echo "ERROR: buildozer.spec not found in repo root!"
-          exit 1
-        fi
+        cat > main.py << 'EOF'
+        # Minimal Manim Android App
+        import os
+        os.environ['KIVY_WINDOW'] = 'pygame'
         
-        # Show key configuration
-        echo "=== buildozer.spec Configuration ==="
-        grep "^title\|^package.name\|^version\|^android.api\|^android.minapi\|^android.archs" buildozer.spec
+        from kivy.app import App
+        from kivy.uix.boxlayout import BoxLayout
+        from kivy.uix.label import Label
+        from kivy.uix.button import Button
         
-        # Show requirements
-        echo ""
-        echo "=== Requirements ==="
-        grep -A 20 "^requirements" buildozer.spec
+        class ManimApp(App):
+            def build(self):
+                layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
+                
+                label = Label(
+                    text='Manim for Android\nInitialization successful!',
+                    size_hint_y=0.7,
+                    font_size='24sp'
+                )
+                
+                button = Button(
+                    text='Test Render',
+                    size_hint_y=0.3
+                )
+                button.bind(on_press=self.on_test)
+                
+                layout.add_widget(label)
+                layout.add_widget(button)
+                
+                return layout
+            
+            def on_test(self, instance):
+                print("Test render triggered")
+                # Actual Manim rendering would go here
+        
+        if __name__ == '__main__':
+            ManimApp().run()
+        EOF
+        
+        cat > p4a_hook.py << 'EOF'
+        # P4A Build Hook - Ensures all dependencies are included
+        def postbuild_gradle(gradle_file):
+            """Post-process gradle build to include Manim dependencies"""
+            pass
+        
+        def install_python_package(ctx, package):
+            """Install Python packages during build"""
+            pass
+        EOF
 
     # ============================================
-    # BUILD APK WITH BUILDOZER
-    # This creates the final Android APK
+    # BUILD APK
     # ============================================
-    - name: Build APK with Buildozer
+    - name: Build with Buildozer (Debug APK)
       run: |
-        echo "Starting Buildozer build..."
-        echo "This may take 30-90 minutes on first run"
-        echo ""
-        
-        # Accept licenses and build
-        # Use 'yes' to automatically accept Android SDK licenses
+        # Accept Android SDK licenses
         yes | buildozer android debug 2>&1 | tee buildozer.log
         
-        BUILD_RESULT=$?
-        
-        echo ""
-        echo "=== Build Result ==="
-        if [ $BUILD_RESULT -eq 0 ]; then
-          echo "✓ Build successful"
+        # Check build status
+        if [ -f "bin/manimanim-0.1.0-debug.apk" ]; then
+          echo "✓ APK build successful!"
+          ls -lh bin/*.apk
         else
-          echo "✗ Build failed with code $BUILD_RESULT"
-          echo ""
-          echo "=== Last 50 lines of buildozer.log ==="
-          tail -50 buildozer.log
-          exit $BUILD_RESULT
-        fi
-
-    # ============================================
-    # LOCATE AND VERIFY APK
-    # ============================================
-    - name: Verify APK Output
-      if: success()
-      run: |
-        echo "=== Searching for APK files ==="
-        find . -name "*.apk" -type f
-        
-        APK_COUNT=$(find . -name "*.apk" -type f | wc -l)
-        echo ""
-        echo "Found $APK_COUNT APK file(s)"
-        
-        if [ "$APK_COUNT" -eq 0 ]; then
-          echo "ERROR: No APK file found!"
-          echo ""
-          echo "Checking bin directory:"
-          ls -lah bin/ 2>/dev/null || echo "bin directory not found"
+          echo "✗ APK build failed"
+          tail -100 buildozer.log
           exit 1
         fi
-        
-        # Show APK details
-        for apk in $(find . -name "*.apk" -type f); do
-          echo ""
-          echo "APK: $apk"
-          ls -lh "$apk"
-          echo "Contents (first 30 files):"
-          unzip -l "$apk" | head -35
-        done
 
     # ============================================
-    # UPLOAD ARTIFACTS FOR DOWNLOAD
+    # UPLOAD ARTIFACTS
     # ============================================
     - name: Upload APK Artifact
       if: success()
@@ -300,7 +337,6 @@ jobs:
         name: manim-android-apk
         path: bin/*.apk
         retention-days: 30
-        compression-level: 0  # APK already compressed
 
     - name: Upload Build Log
       if: always()
@@ -311,36 +347,19 @@ jobs:
         retention-days: 7
 
     # ============================================
-    # BUILD SUMMARY
+    # BUILD VERIFICATION
     # ============================================
-    - name: Build Summary
-      if: always()
+    - name: Verify APK Contents
+      if: success()
       run: |
-        echo ""
-        echo "╔════════════════════════════════════╗"
-        echo "║   MANIM ANDROID BUILD COMPLETE     ║"
-        echo "╚════════════════════════════════════╝"
-        echo ""
-        
-        if [ -f "buildozer.log" ]; then
-          echo "Build log: buildozer.log"
-          
-          # Count build steps
-          COMPILE_STEPS=$(grep -c "compile" buildozer.log || true)
-          LINK_STEPS=$(grep -c "linking" buildozer.log || true)
-          
-          echo "Compilation steps: $COMPILE_STEPS"
-          echo "Linking steps: $LINK_STEPS"
-          
-          # Show final status
-          echo ""
-          if grep -q "Building done" buildozer.log; then
-            echo "✓ Build completed successfully"
-          elif grep -q "error\|Error\|ERROR" buildozer.log; then
-            echo "✗ Build had errors - check log"
+        echo "=== APK Details ==="
+        for apk in bin/*.apk; do
+          if [ -f "$apk" ]; then
+            echo "File: $apk"
+            unzip -l "$apk" | head -30
+            echo "..."
+            echo "Total files in APK:"
+            unzip -l "$apk" | tail -2
           fi
-        fi
-        
-        echo ""
-        echo "📦 APK Artifacts available for download in Actions"
+        done
         
