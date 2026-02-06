@@ -60,25 +60,20 @@ jobs:
         sudo apt-get install -y \
           libcairo2-dev \
           libpango1.0-dev \
-          libpangocairo-1.0-0 \
-          libpango-1.0-0 \
           
         # Font handling (CRITICAL for text rendering)
         sudo apt-get install -y \
           libfreetype6-dev \
-          libfreetype-dev \
           fonts-liberation \
           fonts-dejavu-core \
           
         # Text shaping engine
         sudo apt-get install -y \
           libharfbuzz-dev \
-          libharfbuzz0b \
           
         # Bidirectional text support
         sudo apt-get install -y \
           libfribidi-dev \
-          libfribidi0 \
           
         # Image and compression libraries
         sudo apt-get install -y \
@@ -107,7 +102,11 @@ jobs:
         # GLib dependencies (needed for Pango)
         sudo apt-get install -y \
           libglib2.0-dev \
-          libgobject-2.0-dev \
+          
+        # GObject introspection (needed for Pango)
+        sudo apt-get install -y \
+          gobject-introspection \
+          libgirepository1.0-dev \
           
         # XML libraries
         sudo apt-get install -y \
