@@ -124,7 +124,7 @@ jobs:
       - name: Set up Android SDK/NDK
         uses: android-actions/setup-android@v3
         with:
-          packages: |
+          packages: >
             platforms;android-31
             ndk;25.2.9519653
             cmake;3.22.1
@@ -283,4 +283,3 @@ jobs:
             - Date: ${{ github.event.head_commit.timestamp }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
