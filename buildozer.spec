@@ -66,7 +66,7 @@ android.api = 31
 android.minapi = 21
 
 # Android NDK version
-android.ndk = 25b
+android.ndk = 25.2.9519653
 
 # Accept Android SDK licenses
 android.accept_sdk_license = True
@@ -83,9 +83,7 @@ android.gradle_dependencies = androidx.appcompat:appcompat:1.6.1
 # Log level
 android.logcat_filters = *:S python:D
 
-# Buildozer options
 [buildozer]
-
 # Log level (0=error, 1=info, 2=debug)
 log_level = 2
 

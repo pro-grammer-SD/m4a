@@ -111,7 +111,7 @@ jobs:
       - name: Install System Dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y build-essential git curl wget pkg-config autoconf automake libtool cmake ninja-build
+          sudo apt-get install -y build-essential git curl wget pkg-config autoconf automake libtool m4 gettext cmake ninja-build
           sudo apt-get install -y libcairo2-dev libpango1.0-dev libfreetype6-dev fonts-liberation fonts-dejavu-core libharfbuzz-dev libfribidi-dev
           sudo apt-get install -y libpng-dev zlib1g-dev libjpeg-dev
           sudo apt-get install -y ffmpeg libavformat-dev libavcodec-dev libavdevice-dev libswscale-dev libswresample-dev libavutil-dev libavfilter-dev
@@ -124,12 +124,12 @@ jobs:
       - name: Set up Android SDK/NDK
         uses: android-actions/setup-android@v3
         with:
-          packages: >
+          packages: |
             platforms;android-31
             ndk;25.2.9519653
             cmake;3.22.1
             build-tools;34.0.0
-            
+
       - name: Verify Dependencies
         run: |
           pkg-config --modversion cairo
